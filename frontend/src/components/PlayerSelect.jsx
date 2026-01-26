@@ -137,23 +137,25 @@ export default function PlayerSelect({ players, selectedIds, onChange, onPlayerA
         {selectedIds.length < 2 && ' (minimum 2)'}
       </p>
 
-      {/* Add new player form - mobile optimized */}
-      <form onSubmit={handleAddPlayer} className="flex gap-2">
+      {/* Add new player - mobile optimized */}
+      <div className="flex gap-2">
         <input
           type="text"
           value={newPlayerName}
           onChange={(e) => setNewPlayerName(e.target.value)}
+          onKeyDown={(e) => e.key === 'Enter' && handleAddPlayer(e)}
           placeholder="New player name"
           className="flex-1 px-4 py-3 border border-gray-300 rounded-xl text-base focus:ring-2 focus:ring-blue-500 focus:border-blue-500 min-h-[48px]"
         />
         <button
-          type="submit"
+          type="button"
+          onClick={handleAddPlayer}
           disabled={isAdding || !newPlayerName.trim()}
           className="px-5 py-3 bg-green-600 text-white rounded-xl font-medium min-h-[48px] min-w-[72px] active:bg-green-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
         >
           {isAdding ? '...' : 'Add'}
         </button>
-      </form>
+      </div>
 
       {error && (
         <p className="text-base text-red-600">{error}</p>
