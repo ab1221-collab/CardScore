@@ -33,16 +33,20 @@ export default function PlayerSelect({ players, selectedIds, onChange, onPlayerA
 
   const handleAddPlayer = async (e) => {
     e.preventDefault();
+    console.log('handleAddPlayer called, name:', newPlayerName);
     if (!newPlayerName.trim()) return;
 
     setError('');
     setIsAdding(true);
 
     try {
+      console.log('Calling createPlayer API...');
       const player = await createPlayer(newPlayerName.trim());
+      console.log('Player created successfully:', player);
       onPlayerAdded(player);
       setNewPlayerName('');
     } catch (err) {
+      console.error('Error creating player:', err);
       setError(err.message);
     } finally {
       setIsAdding(false);
