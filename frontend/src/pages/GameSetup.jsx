@@ -27,16 +27,20 @@ export default function GameSetup() {
 
   const loadPlayers = async () => {
     try {
+      console.log('Loading players...');
       const data = await getPlayers();
+      console.log('Players loaded:', data);
       setPlayers(data);
     } catch (err) {
-      setError('Failed to load players');
+      console.error('Failed to load players:', err);
+      setError('Failed to load players: ' + err.message);
     } finally {
       setLoading(false);
     }
   };
 
   const handlePlayerAdded = (player) => {
+    console.log('Player added:', player);
     setPlayers([...players, player]);
   };
 
