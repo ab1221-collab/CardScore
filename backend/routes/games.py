@@ -151,6 +151,24 @@ def get_game(game_id):
     return jsonify(get_game_state(game))
 
 
+@games_bp.route('/games/<int:game_id>', methods=['DELETE'])
+def delete_game(game_id):
+    """Delete a game and all its associated data."""
+    game = Game.query.get_or_404(game_id)
+    
+    # Delete all scores for this game
+    Score.query.filter_by(game_id=game_id).delete()
+    
+    # Delete all game_player associations
+    GamePlayer.query.filter_by(game_id=game_id).delete()
+    
+    # Delete the game itself
+    db.session.delete(game)
+    db.session.commit()
+    
+    return jsonify({'message': 'Game deleted successfully'})
+
+
 @games_bp.route('/games/<int:game_id>/score', methods=['POST'])
 def submit_score(game_id):
     """

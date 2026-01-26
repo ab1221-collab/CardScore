@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
-import { getGames } from '../api';
+import { getGames, deleteGame } from '../api';
 
 const GAME_TYPE_LABELS = {
   five_crowns: 'Five Crowns',
@@ -31,6 +31,22 @@ export default function History() {
       setError('Failed to load game history');
     } finally {
       setLoading(false);
+    }
+  };
+
+  const handleDelete = async (e, gameId) => {
+    e.preventDefault();
+    e.stopPropagation();
+    
+    if (!confirm('Are you sure you want to delete this game?')) {
+      return;
+    }
+
+    try {
+      await deleteGame(gameId);
+      setGames(games.filter(g => g.id !== gameId));
+    } catch (err) {
+      setError('Failed to delete game');
     }
   };
 
@@ -120,12 +136,18 @@ export default function History() {
                     </p>
                   </div>
 
-                  {/* Date and arrow */}
-                  <div className="text-right ml-4 flex items-center">
+                  {/* Date and delete */}
+                  <div className="text-right ml-4 flex items-center gap-2">
                     <span className="text-sm text-gray-400">
                       {formatDate(game.date_played)}
                     </span>
-                    <span className="ml-2 text-gray-400">→</span>
+                    <button
+                      onClick={(e) => handleDelete(e, game.id)}
+                      className="p-2 text-red-400 hover:text-red-600 hover:bg-red-50 rounded-lg transition-colors min-h-[44px] min-w-[44px] flex items-center justify-center"
+                      title="Delete game"
+                    >
+                      🗑️
+                    </button>
                   </div>
                 </div>
               </Link>

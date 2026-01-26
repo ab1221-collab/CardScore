@@ -64,5 +64,8 @@ export const submitScore = (gameId, round, scores) =>
     body: JSON.stringify({ round, scores }),
   });
 
+export const deleteGame = (id) =>
+  request(`/games/${id}`, { method: 'DELETE' });
+
 // Stats endpoints
 export const getLeaderboard = () => request('/stats/leaderboard');
