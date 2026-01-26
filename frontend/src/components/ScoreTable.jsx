@@ -72,7 +72,7 @@ export default function ScoreTable({ game }) {
                 key={player.id}
                 className="p-3 text-center text-xl font-bold"
               >
-                {totals[player.id] || 0}}
+                {totals[player.id] || 0}
               </td>
             ))}
           </tr>
