@@ -1,7 +1,12 @@
 const API_BASE = import.meta.env.VITE_API_URL || 'http://localhost:5001/api';
 
+// Debug: Log the API URL being used
+console.log('CardScore API URL:', API_BASE);
+
 async function request(endpoint, options = {}) {
   const url = `${API_BASE}${endpoint}`;
+  console.log('API Request:', options.method || 'GET', url);
+  
   const config = {
     headers: {
       'Content-Type': 'application/json',
@@ -9,14 +14,20 @@ async function request(endpoint, options = {}) {
     ...options,
   };
 
-  const response = await fetch(url, config);
-  
-  if (!response.ok) {
-    const error = await response.json().catch(() => ({ error: 'Request failed' }));
-    throw new Error(error.error || 'Request failed');
-  }
+  try {
+    const response = await fetch(url, config);
+    console.log('API Response:', response.status, url);
+    
+    if (!response.ok) {
+      const error = await response.json().catch(() => ({ error: 'Request failed' }));
+      throw new Error(error.error || 'Request failed');
+    }
 
-  return response.json();
+    return response.json();
+  } catch (err) {
+    console.error('API Error:', err.message, url);
+    throw err;
+  }
 }
 
 // Player endpoints
