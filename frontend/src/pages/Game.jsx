@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import { useParams, Link } from 'react-router-dom';
 import { getGame, submitScore } from '../api';
+import ScoreEntryModal from '../components/ScoreEntryModal';
 
 const GAME_TYPE_LABELS = {
   five_crowns: 'Five Crowns',
@@ -46,6 +47,7 @@ export default function Game() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
   const [expandedPlayerId, setExpandedPlayerId] = useState(null);
+  const [isModalOpen, setIsModalOpen] = useState(false);
 
   useEffect(() => {
     loadGame();
@@ -64,7 +66,18 @@ export default function Game() {
   };
 
   const handleEnterScores = () => {
-    console.log('Open Modal');
+    setIsModalOpen(true);
+  };
+
+  const handleScoreSubmit = async (scores) => {
+    console.log('Submitting scores for round', game.current_round, scores);
+    try {
+      const updatedGame = await submitScore(id, game.current_round, scores);
+      setGame(updatedGame);
+      setError('');
+    } catch (err) {
+      setError(err.message || 'Failed to save scores');
+    }
   };
 
   if (loading) {
@@ -276,6 +289,15 @@ export default function Game() {
           </Link>
         </div>
       )}
+
+      {/* Score Entry Modal */}
+      <ScoreEntryModal
+        isOpen={isModalOpen}
+        onClose={() => setIsModalOpen(false)}
+        onSubmit={handleScoreSubmit}
+        players={players}
+        roundNumber={current_round}
+      />
     </div>
   );
 }
