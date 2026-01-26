@@ -1,0 +1,1 @@
+Reference the file "PLAN.md" for all architectural decisions, database schemas, and API routes.
