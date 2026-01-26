@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { useParams, Link } from 'react-router-dom';
+import { useParams, Link, useNavigate } from 'react-router-dom';
 import { getGame, submitScore } from '../api';
 import ScoreEntryModal from '../components/ScoreEntryModal';
 
@@ -43,6 +43,7 @@ const Trophy = () => (
 
 export default function Game() {
   const { id } = useParams();
+  const navigate = useNavigate();
   const [game, setGame] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
@@ -70,11 +71,32 @@ export default function Game() {
   };
 
   const handleScoreSubmit = async (scores) => {
-    console.log('Submitting scores for round', game.current_round, scores);
+    // Convert all score values to integers
+    const intScores = {};
+    for (const [playerId, score] of Object.entries(scores)) {
+      intScores[playerId] = parseInt(score, 10) || 0;
+    }
+
+    console.log('Submitting scores for round', game.current_round, intScores);
+    
     try {
-      const updatedGame = await submitScore(id, game.current_round, scores);
+      const updatedGame = await submitScore(id, game.current_round, intScores);
       setGame(updatedGame);
       setError('');
+      setIsModalOpen(false);
+      
+      // Check if game just ended
+      if (!updatedGame.is_active) {
+        // Determine winner based on game type
+        const sortedPlayers = updatedGame.players
+          .map(p => ({ ...p, total: updatedGame.totals[p.id] || 0 }))
+          .sort((a, b) => updatedGame.game_type === 'five_crowns' 
+            ? a.total - b.total 
+            : b.total - a.total);
+        
+        const winner = sortedPlayers[0];
+        alert(`🏆 Game Over!\n\n${winner.name} wins with ${winner.total} points!`);
+      }
     } catch (err) {
       setError(err.message || 'Failed to save scores');
     }
