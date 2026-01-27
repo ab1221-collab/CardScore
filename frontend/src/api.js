@@ -58,10 +58,10 @@ export const createGame = (gameType, playerIds, targetScore = null) =>
     }),
   });
 
-export const submitScore = (gameId, round, scores) =>
+export const submitScore = (gameId, round, scores, wentOut = {}) =>
   request(`/games/${gameId}/score`, {
     method: 'POST',
-    body: JSON.stringify({ round, scores }),
+    body: JSON.stringify({ round, scores, went_out: wentOut }),
   });
 
 export const deleteGame = (id) =>

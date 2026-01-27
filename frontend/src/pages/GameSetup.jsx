@@ -14,7 +14,7 @@ export default function GameSetup() {
   const [players, setPlayers] = useState([]);
   const [selectedPlayerIds, setSelectedPlayerIds] = useState([]);
   const [gameType, setGameType] = useState('five_crowns');
-  const [targetScore, setTargetScore] = useState(500);
+  const [targetScore, setTargetScore] = useState('500');
   const [loading, setLoading] = useState(true);
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState('');
@@ -56,7 +56,7 @@ export default function GameSetup() {
     setSubmitting(true);
 
     try {
-      const target = selectedGameType.needsTarget ? targetScore : null;
+      const target = selectedGameType.needsTarget ? (parseInt(targetScore) || 500) : null;
       const game = await createGame(gameType, selectedPlayerIds, target);
       navigate(`/game/${game.id}`);
     } catch (err) {
@@ -125,7 +125,7 @@ export default function GameSetup() {
                 type="number"
                 inputMode="numeric"
                 value={targetScore}
-                onChange={(e) => setTargetScore(parseInt(e.target.value) || 500)}
+                onChange={(e) => setTargetScore(e.target.value)}
                 min="100"
                 step="50"
                 className="w-full px-4 py-3 border border-gray-300 rounded-xl text-lg font-medium focus:ring-2 focus:ring-blue-500 focus:border-blue-500 min-h-[48px]"

@@ -70,17 +70,17 @@ export default function Game() {
     setIsModalOpen(true);
   };
 
-  const handleScoreSubmit = async (scores) => {
+  const handleScoreSubmit = async (scores, wentOut = {}) => {
     // Convert all score values to integers
     const intScores = {};
     for (const [playerId, score] of Object.entries(scores)) {
       intScores[playerId] = parseInt(score, 10) || 0;
     }
 
-    console.log('Submitting scores for round', game.current_round, intScores);
+    console.log('Submitting scores for round', game.current_round, intScores, 'wentOut:', wentOut);
     
     try {
-      const updatedGame = await submitScore(id, game.current_round, intScores);
+      const updatedGame = await submitScore(id, game.current_round, intScores, wentOut);
       setGame(updatedGame);
       setError('');
       setIsModalOpen(false);

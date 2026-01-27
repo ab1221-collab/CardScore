@@ -2,11 +2,13 @@ import { useState, useEffect } from 'react';
 
 export default function ScoreEntryModal({ isOpen, onClose, onSubmit, players, roundNumber }) {
   const [inputScores, setInputScores] = useState({});
+  const [wentOut, setWentOut] = useState({});
 
-  // Reset scores when modal opens
+  // Reset scores and went out when modal opens
   useEffect(() => {
     if (isOpen) {
       setInputScores({});
+      setWentOut({});
     }
   }, [isOpen]);
 
@@ -23,7 +25,7 @@ export default function ScoreEntryModal({ isOpen, onClose, onSubmit, players, ro
         scores[player.id] = 0;
       } else {
         const numValue = parseInt(value, 10);
-        if (isNaN(numValue) || numValue < 0) {
+        if (isNaN(numValue)) {
           isValid = false;
         } else {
           scores[player.id] = numValue;
@@ -32,20 +34,26 @@ export default function ScoreEntryModal({ isOpen, onClose, onSubmit, players, ro
     });
 
     if (!isValid) {
-      alert('Please enter valid scores (non-negative numbers)');
+      alert('Please enter valid scores (numbers only)');
       return;
     }
 
-    onSubmit(scores);
+    // Pass both scores and went_out data
+    onSubmit(scores, wentOut);
     setInputScores({});
+    setWentOut({});
     onClose();
   };
 
   const handleInputChange = (playerId, value) => {
-    // Only allow numeric input
-    if (value === '' || /^\d+$/.test(value)) {
+    // Allow empty, negative sign, or numbers (including negatives)
+    if (value === '' || value === '-' || /^-?\d+$/.test(value)) {
       setInputScores({ ...inputScores, [playerId]: value });
     }
+  };
+
+  const handleWentOutChange = (playerId) => {
+    setWentOut({ ...wentOut, [playerId]: !wentOut[playerId] });
   };
 
   return (
@@ -73,19 +81,27 @@ export default function ScoreEntryModal({ isOpen, onClose, onSubmit, players, ro
         {/* Input List */}
         <div className="space-y-4 max-h-[60vh] overflow-y-auto pb-4">
           {players.map(player => (
-            <div key={player.id} className="flex items-center justify-between gap-4">
+            <div key={player.id} className="flex items-center gap-3">
               <label className="font-semibold text-gray-700 flex-1 truncate text-lg">
                 {player.name}
               </label>
               <input 
-                type="tel" 
+                type="text" 
                 inputMode="numeric"
-                pattern="[0-9]*" 
                 placeholder="0"
                 value={inputScores[player.id] || ''}
                 onChange={(e) => handleInputChange(player.id, e.target.value)}
-                className="w-28 h-12 text-center text-xl font-medium border-2 border-gray-200 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors"
+                className="w-24 h-12 text-center text-xl font-medium border-2 border-gray-200 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors"
               />
+              <label className="flex items-center gap-1.5 min-w-[70px]">
+                <input
+                  type="checkbox"
+                  checked={wentOut[player.id] || false}
+                  onChange={() => handleWentOutChange(player.id)}
+                  className="w-5 h-5 rounded border-gray-300 text-blue-600 focus:ring-blue-500"
+                />
+                <span className="text-sm text-gray-600">Out</span>
+              </label>
             </div>
           ))}
         </div>

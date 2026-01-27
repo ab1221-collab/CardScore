@@ -77,6 +77,7 @@ class Score(db.Model):
     player_id = db.Column(db.Integer, db.ForeignKey('players.id'), nullable=False)
     round_number = db.Column(db.Integer, nullable=False)
     points = db.Column(db.Integer, nullable=False)
+    went_out = db.Column(db.Boolean, default=False)
 
     # Relationships
     game = db.relationship('Game', back_populates='scores')
@@ -92,5 +93,6 @@ class Score(db.Model):
             'game_id': self.game_id,
             'player_id': self.player_id,
             'round_number': self.round_number,
-            'points': self.points
+            'points': self.points,
+            'went_out': self.went_out
         }

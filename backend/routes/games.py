@@ -186,6 +186,7 @@ def submit_score(game_id):
 
     round_number = data.get('round')
     scores_data = data.get('scores', {})
+    went_out_data = data.get('went_out', {})  # { player_id: true/false }
 
     if round_number is None:
         return jsonify({'error': 'Round number is required'}), 400
@@ -210,11 +211,13 @@ def submit_score(game_id):
 
     # Add scores
     for player_id, points in scores_data.items():
+        pid = int(player_id)
         score = Score(
             game_id=game_id,
-            player_id=int(player_id),
+            player_id=pid,
             round_number=round_number,
-            points=int(points)
+            points=int(points),
+            went_out=went_out_data.get(str(pid), False) or went_out_data.get(pid, False)
         )
         db.session.add(score)
 
