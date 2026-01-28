@@ -126,11 +126,14 @@ def create_game():
 
     # Get target score for Rummy games
     target_score = None
+    going_out_bonus = None
     if game_type in ['500_rum', 'gin_rummy']:
         target_score = data.get('target_score', 500)
+    if game_type == '500_rum':
+        going_out_bonus = data.get('going_out_bonus', 50)
 
     # Create game
-    game = Game(game_type=game_type, target_score=target_score)
+    game = Game(game_type=game_type, target_score=target_score, going_out_bonus=going_out_bonus)
     db.session.add(game)
     db.session.flush()  # Get the game ID
 
@@ -212,12 +215,19 @@ def submit_score(game_id):
     # Add scores
     for player_id, points in scores_data.items():
         pid = int(player_id)
+        final_points = int(points)
+        player_went_out = went_out_data.get(str(pid), False) or went_out_data.get(pid, False)
+        
+        # Apply going out bonus for 500 Rum
+        if game.game_type == '500_rum' and player_went_out and game.going_out_bonus:
+            final_points += game.going_out_bonus
+        
         score = Score(
             game_id=game_id,
             player_id=pid,
             round_number=round_number,
-            points=int(points),
-            went_out=went_out_data.get(str(pid), False) or went_out_data.get(pid, False)
+            points=final_points,
+            went_out=player_went_out
         )
         db.session.add(score)
 
@@ -228,6 +238,98 @@ def submit_score(game_id):
 
     db.session.commit()
 
+    return jsonify(get_game_state(game))
+
+
+@games_bp.route('/games/<int:game_id>/score', methods=['PUT'])
+def update_score(game_id):
+    """
+    Update existing round scores.
+    Body: { "round": 1, "scores": { "1": 10, "2": 0 }, "went_out": { "1": true } }
+    """
+    game = Game.query.get_or_404(game_id)
+    
+    data = request.get_json()
+    if not data:
+        return jsonify({'error': 'Request body is required'}), 400
+    
+    round_number = data.get('round')
+    scores_data = data.get('scores', {})
+    went_out_data = data.get('went_out', {})
+    
+    if round_number is None:
+        return jsonify({'error': 'Round number is required'}), 400
+    
+    # Get all players in this game
+    game_player_ids = [gp.player_id for gp in GamePlayer.query.filter_by(game_id=game_id).all()]
+    
+    # Update each player's score for this round
+    for player_id, points in scores_data.items():
+        pid = int(player_id)
+        if pid not in game_player_ids:
+            continue
+            
+        player_went_out = went_out_data.get(str(pid), False) or went_out_data.get(pid, False)
+        final_points = int(points)
+        
+        # Apply going out bonus for 500 Rum
+        if game.game_type == '500_rum' and player_went_out and game.going_out_bonus:
+            final_points += game.going_out_bonus
+        
+        # Find and update existing score
+        score = Score.query.filter_by(
+            game_id=game_id, 
+            player_id=pid, 
+            round_number=round_number
+        ).first()
+        
+        if score:
+            score.points = final_points
+            score.went_out = player_went_out
+        else:
+            # Create if doesn't exist
+            score = Score(
+                game_id=game_id,
+                player_id=pid,
+                round_number=round_number,
+                points=final_points,
+                went_out=player_went_out
+            )
+            db.session.add(score)
+    
+    # Re-check if game is over
+    db.session.flush()
+    game.is_active = not check_game_over(game)
+    
+    db.session.commit()
+    return jsonify(get_game_state(game))
+
+
+@games_bp.route('/games/<int:game_id>/players/<int:player_id>', methods=['DELETE'])
+def remove_player_from_game(game_id, player_id):
+    """Remove a player from an in-progress game."""
+    game = Game.query.get_or_404(game_id)
+    
+    if not game.is_active:
+        return jsonify({'error': 'Cannot modify a finished game'}), 400
+    
+    # Check minimum players
+    player_count = GamePlayer.query.filter_by(game_id=game_id).count()
+    if player_count <= 2:
+        return jsonify({'error': 'Cannot remove player - minimum 2 players required'}), 400
+    
+    # Verify player is in this game
+    game_player = GamePlayer.query.filter_by(game_id=game_id, player_id=player_id).first()
+    if not game_player:
+        return jsonify({'error': 'Player not found in this game'}), 404
+    
+    # Delete player's scores for this game
+    Score.query.filter_by(game_id=game_id, player_id=player_id).delete()
+    
+    # Remove player from game
+    db.session.delete(game_player)
+    db.session.commit()
+    
     return jsonify(get_game_state(game))
 
 

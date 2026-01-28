@@ -48,13 +48,14 @@ export const getGames = (activeOnly = false) =>
 
 export const getGame = (id) => request(`/games/${id}`);
 
-export const createGame = (gameType, playerIds, targetScore = null) =>
+export const createGame = (gameType, playerIds, targetScore = null, goingOutBonus = null) =>
   request('/games', {
     method: 'POST',
     body: JSON.stringify({
       game_type: gameType,
       player_ids: playerIds,
       target_score: targetScore,
+      going_out_bonus: goingOutBonus,
     }),
   });
 
@@ -64,8 +65,17 @@ export const submitScore = (gameId, round, scores, wentOut = {}) =>
     body: JSON.stringify({ round, scores, went_out: wentOut }),
   });
 
+export const updateScore = (gameId, round, scores, wentOut = {}) =>
+  request(`/games/${gameId}/score`, {
+    method: 'PUT',
+    body: JSON.stringify({ round, scores, went_out: wentOut }),
+  });
+
 export const deleteGame = (id) =>
   request(`/games/${id}`, { method: 'DELETE' });
+
+export const removePlayerFromGame = (gameId, playerId) =>
+  request(`/games/${gameId}/players/${playerId}`, { method: 'DELETE' });
 
 // Stats endpoints
 export const getLeaderboard = () => request('/stats/leaderboard');

@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { useParams, Link, useNavigate } from 'react-router-dom';
-import { getGame, submitScore } from '../api';
+import { getGame, submitScore, updateScore, removePlayerFromGame } from '../api';
 import ScoreEntryModal from '../components/ScoreEntryModal';
 
 const GAME_TYPE_LABELS = {
@@ -41,6 +41,18 @@ const Trophy = () => (
   </svg>
 );
 
+const TrashIcon = () => (
+  <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+  </svg>
+);
+
+const EditIcon = () => (
+  <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
+  </svg>
+);
+
 export default function Game() {
   const { id } = useParams();
   const navigate = useNavigate();
@@ -49,6 +61,7 @@ export default function Game() {
   const [error, setError] = useState('');
   const [expandedPlayerId, setExpandedPlayerId] = useState(null);
   const [isModalOpen, setIsModalOpen] = useState(false);
+  const [editingRound, setEditingRound] = useState(null); // { round: number, scores: {}, wentOut: {} }
 
   useEffect(() => {
     loadGame();
@@ -67,6 +80,25 @@ export default function Game() {
   };
 
   const handleEnterScores = () => {
+    setEditingRound(null);
+    setIsModalOpen(true);
+  };
+
+  const handleEditRound = (roundNumber) => {
+    // Gather existing scores for this round
+    const existingScores = {};
+    const existingWentOut = {};
+    
+    // We need to get scores from the rounds data
+    const roundData = game.rounds[roundNumber] || {};
+    for (const [playerId, score] of Object.entries(roundData)) {
+      existingScores[playerId] = score;
+    }
+    
+    // Note: went_out status would need to come from API if we want to pre-fill it
+    // For now, we'll start with unchecked
+    
+    setEditingRound({ round: roundNumber, scores: existingScores, wentOut: existingWentOut });
     setIsModalOpen(true);
   };
 
@@ -77,16 +109,21 @@ export default function Game() {
       intScores[playerId] = parseInt(score, 10) || 0;
     }
 
-    console.log('Submitting scores for round', game.current_round, intScores, 'wentOut:', wentOut);
+    const roundNumber = editingRound ? editingRound.round : game.current_round;
+    const isEditing = !!editingRound;
+    
+    console.log(isEditing ? 'Updating' : 'Submitting', 'scores for round', roundNumber, intScores, 'wentOut:', wentOut);
     
     try {
-      const updatedGame = await submitScore(id, game.current_round, intScores, wentOut);
+      const apiCall = isEditing ? updateScore : submitScore;
+      const updatedGame = await apiCall(id, roundNumber, intScores, wentOut);
       setGame(updatedGame);
       setError('');
       setIsModalOpen(false);
+      setEditingRound(null);
       
-      // Check if game just ended
-      if (!updatedGame.is_active) {
+      // Check if game just ended (only for new submissions)
+      if (!isEditing && !updatedGame.is_active) {
         // Determine winner based on game type
         const sortedPlayers = updatedGame.players
           .map(p => ({ ...p, total: updatedGame.totals[p.id] || 0 }))
@@ -99,6 +136,21 @@ export default function Game() {
       }
     } catch (err) {
       setError(err.message || 'Failed to save scores');
+    }
+  };
+
+  const handleRemovePlayer = async (playerId, playerName) => {
+    if (!confirm(`Remove ${playerName} from this game? Their scores will be deleted.`)) {
+      return;
+    }
+    
+    try {
+      const updatedGame = await removePlayerFromGame(id, playerId);
+      setGame(updatedGame);
+      setExpandedPlayerId(null);
+      setError('');
+    } catch (err) {
+      setError(err.message || 'Failed to remove player');
     }
   };
 
@@ -246,10 +298,10 @@ export default function Game() {
 
               {/* Expanded History Body */}
               {expandedPlayerId === player.id && player.history.length > 0 && (
-                <div className="bg-gray-50 border-t border-gray-100 p-4">
+                <div className="bg-gray-50 border-t border-gray-100 p-4" onClick={(e) => e.stopPropagation()}>
                   <div className="space-y-2">
                     {player.history.map(h => (
-                      <div key={h.round} className="flex justify-between text-sm py-1">
+                      <div key={h.round} className="flex justify-between items-center text-sm py-1">
                         <span className="text-gray-500">
                           Round {h.round}
                           {game_type === 'five_crowns' && (
@@ -258,11 +310,20 @@ export default function Game() {
                             </span>
                           )}
                         </span>
-                        <span className={`font-medium ${
-                          h.score === 0 ? 'text-green-600' : 'text-gray-900'
-                        }`}>
-                          {h.score === 0 ? '✓ 0' : `+${h.score}`}
-                        </span>
+                        <div className="flex items-center gap-2">
+                          <span className={`font-medium ${
+                            h.score === 0 ? 'text-green-600' : h.score < 0 ? 'text-red-600' : 'text-gray-900'
+                          }`}>
+                            {h.score === 0 ? '✓ 0' : h.score < 0 ? h.score : `+${h.score}`}
+                          </span>
+                          <button
+                            onClick={() => handleEditRound(h.round)}
+                            className="p-1.5 text-gray-400 hover:text-blue-600 active:text-blue-700 rounded min-w-[32px] min-h-[32px] flex items-center justify-center"
+                            title="Edit round"
+                          >
+                            <EditIcon />
+                          </button>
+                        </div>
                       </div>
                     ))}
                     <div className="border-t border-gray-200 pt-2 mt-2 flex justify-between font-bold">
@@ -270,13 +331,35 @@ export default function Game() {
                       <span className="text-gray-900">{player.totalScore}</span>
                     </div>
                   </div>
+                  
+                  {/* Remove Player Button - only show if active game and more than 2 players */}
+                  {is_active && players.length > 2 && (
+                    <button
+                      onClick={() => handleRemovePlayer(player.id, player.name)}
+                      className="mt-4 w-full py-2 px-3 text-red-600 border border-red-200 rounded-lg text-sm font-medium flex items-center justify-center gap-2 active:bg-red-50"
+                    >
+                      <TrashIcon />
+                      Remove {player.name} from Game
+                    </button>
+                  )}
                 </div>
               )}
 
               {/* Empty state for expanded player with no history */}
               {expandedPlayerId === player.id && player.history.length === 0 && (
-                <div className="bg-gray-50 border-t border-gray-100 p-4 text-center text-gray-500 text-sm">
-                  No rounds played yet
+                <div className="bg-gray-50 border-t border-gray-100 p-4" onClick={(e) => e.stopPropagation()}>
+                  <p className="text-center text-gray-500 text-sm mb-3">No rounds played yet</p>
+                  
+                  {/* Remove Player Button - only show if active game and more than 2 players */}
+                  {is_active && players.length > 2 && (
+                    <button
+                      onClick={() => handleRemovePlayer(player.id, player.name)}
+                      className="w-full py-2 px-3 text-red-600 border border-red-200 rounded-lg text-sm font-medium flex items-center justify-center gap-2 active:bg-red-50"
+                    >
+                      <TrashIcon />
+                      Remove {player.name} from Game
+                    </button>
+                  )}
                 </div>
               )}
             </div>
@@ -315,10 +398,16 @@ export default function Game() {
       {/* Score Entry Modal */}
       <ScoreEntryModal
         isOpen={isModalOpen}
-        onClose={() => setIsModalOpen(false)}
+        onClose={() => {
+          setIsModalOpen(false);
+          setEditingRound(null);
+        }}
         onSubmit={handleScoreSubmit}
         players={players}
-        roundNumber={current_round}
+        roundNumber={editingRound ? editingRound.round : current_round}
+        initialScores={editingRound ? editingRound.scores : {}}
+        initialWentOut={editingRound ? editingRound.wentOut : {}}
+        isEditing={!!editingRound}
       />
     </div>
   );

@@ -1,16 +1,21 @@
 import { useState, useEffect } from 'react';
 
-export default function ScoreEntryModal({ isOpen, onClose, onSubmit, players, roundNumber }) {
+export default function ScoreEntryModal({ isOpen, onClose, onSubmit, players, roundNumber, initialScores = {}, initialWentOut = {}, isEditing = false }) {
   const [inputScores, setInputScores] = useState({});
   const [wentOut, setWentOut] = useState({});
 
-  // Reset scores and went out when modal opens
+  // Reset or pre-fill scores when modal opens
   useEffect(() => {
     if (isOpen) {
-      setInputScores({});
-      setWentOut({});
+      // Convert initial scores to strings for input fields
+      const scores = {};
+      for (const [playerId, score] of Object.entries(initialScores)) {
+        scores[playerId] = String(score);
+      }
+      setInputScores(scores);
+      setWentOut(initialWentOut);
     }
-  }, [isOpen]);
+  }, [isOpen, initialScores, initialWentOut]);
 
   if (!isOpen) return null;
 
@@ -69,7 +74,9 @@ export default function ScoreEntryModal({ isOpen, onClose, onSubmit, players, ro
         
         {/* Header */}
         <div className="flex justify-between items-center mb-6">
-          <h2 className="text-xl font-bold text-gray-900">Round {roundNumber} Scores</h2>
+          <h2 className="text-xl font-bold text-gray-900">
+            {isEditing ? 'Edit' : ''} Round {roundNumber} Scores
+          </h2>
           <button 
             onClick={onClose} 
             className="text-gray-500 active:text-gray-700 font-medium min-h-[44px] min-w-[44px] flex items-center justify-center -mr-2"
@@ -112,7 +119,7 @@ export default function ScoreEntryModal({ isOpen, onClose, onSubmit, players, ro
             onClick={handleSubmit}
             className="w-full bg-blue-600 active:bg-blue-700 text-white font-bold h-14 rounded-xl shadow-lg text-lg min-h-[56px] transition-colors"
           >
-            Save Scores
+            {isEditing ? 'Update Scores' : 'Save Scores'}
           </button>
         </div>
       </div>

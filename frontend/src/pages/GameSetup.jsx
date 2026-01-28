@@ -15,6 +15,7 @@ export default function GameSetup() {
   const [selectedPlayerIds, setSelectedPlayerIds] = useState([]);
   const [gameType, setGameType] = useState('five_crowns');
   const [targetScore, setTargetScore] = useState('500');
+  const [goingOutBonus, setGoingOutBonus] = useState('50');
   const [loading, setLoading] = useState(true);
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState('');
@@ -57,7 +58,8 @@ export default function GameSetup() {
 
     try {
       const target = selectedGameType.needsTarget ? (parseInt(targetScore) || 500) : null;
-      const game = await createGame(gameType, selectedPlayerIds, target);
+      const bonus = gameType === '500_rum' ? (parseInt(goingOutBonus) || 50) : null;
+      const game = await createGame(gameType, selectedPlayerIds, target, bonus);
       navigate(`/game/${game.id}`);
     } catch (err) {
       setError(err.message);
@@ -132,6 +134,27 @@ export default function GameSetup() {
               />
               <p className="text-base text-gray-500 mt-2">
                 First player to reach this score wins
+              </p>
+            </div>
+          )}
+
+          {/* Going Out Bonus (500 Rum only) */}
+          {gameType === '500_rum' && (
+            <div>
+              <label className="block text-base font-medium text-gray-700 mb-2">
+                Going Out Bonus
+              </label>
+              <input
+                type="number"
+                inputMode="numeric"
+                value={goingOutBonus}
+                onChange={(e) => setGoingOutBonus(e.target.value)}
+                min="0"
+                step="5"
+                className="w-full px-4 py-3 border border-gray-300 rounded-xl text-lg font-medium focus:ring-2 focus:ring-blue-500 focus:border-blue-500 min-h-[48px]"
+              />
+              <p className="text-base text-gray-500 mt-2">
+                Bonus points added when a player goes out
               </p>
             </div>
           )}

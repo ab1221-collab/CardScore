@@ -29,6 +29,7 @@ class Game(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     game_type = db.Column(db.String(50), nullable=False)  # five_crowns, 500_rum, gin_rummy
     target_score = db.Column(db.Integer, nullable=True)  # Used for Rummy/Gin only
+    going_out_bonus = db.Column(db.Integer, nullable=True)  # Bonus points for going out (500 Rum)
     is_active = db.Column(db.Boolean, default=True)
     date_played = db.Column(db.DateTime, default=datetime.utcnow)
 
@@ -41,6 +42,7 @@ class Game(db.Model):
             'id': self.id,
             'game_type': self.game_type,
             'target_score': self.target_score,
+            'going_out_bonus': self.going_out_bonus,
             'is_active': self.is_active,
             'date_played': self.date_played.isoformat()
         }
