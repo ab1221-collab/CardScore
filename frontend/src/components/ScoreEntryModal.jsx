@@ -61,6 +61,16 @@ export default function ScoreEntryModal({ isOpen, onClose, onSubmit, players, ro
     setWentOut({ ...wentOut, [playerId]: !wentOut[playerId] });
   };
 
+  const handleToggleSign = (playerId) => {
+    const current = inputScores[playerId] || '';
+    if (current === '' || current === '0') return;
+    if (current.startsWith('-')) {
+      setInputScores({ ...inputScores, [playerId]: current.slice(1) });
+    } else {
+      setInputScores({ ...inputScores, [playerId]: '-' + current });
+    }
+  };
+
   return (
     <div className="fixed inset-0 z-50 flex items-end justify-center sm:items-center">
       {/* Dark Backdrop */}
@@ -100,6 +110,13 @@ export default function ScoreEntryModal({ isOpen, onClose, onSubmit, players, ro
                 onChange={(e) => handleInputChange(player.id, e.target.value)}
                 className="w-24 h-12 text-center text-xl font-medium border-2 border-gray-200 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors"
               />
+              <button
+                type="button"
+                onClick={() => handleToggleSign(player.id)}
+                className="w-10 h-12 text-sm font-bold rounded-lg bg-gray-100 active:bg-gray-200 text-gray-600 flex items-center justify-center select-none transition-colors"
+              >
+                +/−
+              </button>
               <label className="flex items-center gap-1.5 min-w-[70px]">
                 <input
                   type="checkbox"
